@@ -19,6 +19,7 @@ const Home: React.FC = () => {
   // State variable to store the selected theme
   // usestate is a react hook that allows us to add state to a functional component
   const [theme, setTheme] = useState<string>('');
+  const [isLoading, setisLoading] = useState(false)
 
   // State variable to store the generated curriculum
   const [curriculum, setCurriculum] = useState<string>('');
@@ -34,6 +35,7 @@ const Home: React.FC = () => {
   // Handler function for generating curriculum
   // this function send the selected theme to the severless function and retrieves the generated curriculum
   const handleGenerateClick = async () => {
+    setisLoading(true)
     // Send a POST request to the generate API endpoint
     const response = await fetch('/api/generate', {
       method: 'POST',
@@ -51,32 +53,35 @@ const Home: React.FC = () => {
     } else {
       console.error('Error:', data.error); // Log any errors
     }
+    setisLoading(false)
   };
 
-  return (
-    <div>
-      <h1>Create Custom Curriculum</h1>
-      {/* Dropdown for selecting a theme. The value is controlled by the theme state. */}
-      <select 
-        value={theme} 
-        onChange={handleThemeChange}
-        style={{
-            color: '#333333',
-            backgroundColor: '#f0f0f0',
-            borderColor: '#cccccc',
-            padding: '8px',
-            borderRadius: '4px'
-        }}
-        >
 
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen min-w-full bg-gray-100 p-4">
+      <h1 className="text-4xl font-bold mb-6">Create Custom Curriculum</h1>
+      <select
+        value={theme}
+        onChange={handleThemeChange}
+        className="p-3 mb-4 border border-gray-400 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
         <option value="">Select Theme</option>
         <option value="minecraft">Minecraft</option>
         <option value="superheroes">Superheroes</option>
       </select>
-      {/* Button to trigger the generation of curriculum. */}
-      <button onClick={handleGenerateClick}>Generate</button>
-      {/* Display the generated curriculum if it exists. */}
-      {curriculum && <div>{curriculum}</div>}
+      <button
+        onClick={handleGenerateClick}
+        className={`text-white px-4 py-2 rounded ${isLoading || theme == '' ? "bg-gray-300 border-2 border-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"}`}
+        disabled={isLoading || theme == ''}
+      >
+        Generate
+      </button>
+      {curriculum && (
+        <div className="mt-8 p-6 bg-white rounded-lg shadow-lg max-w-2xl mx-auto text-left">
+          <h2 className="text-2xl font-bold mb-4 text-blue-700">Generated Curriculum</h2>
+          <p className="text-gray-800 whitespace-pre-line leading-relaxed">{curriculum}</p>
+        </div>
+      )}
     </div>
   );
 };

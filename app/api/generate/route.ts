@@ -15,6 +15,8 @@ const openai = new OpenAI({
 })
 
 // Define an async function to handle POST requests
+// need to change to this request so rht the curriculium is stored in the data base and the funciton needs to check that the curriculum is already i the database, if it is return the currirulmun by theme
+// user input could make new curriculums
 export async function POST(req: NextRequest) {
     console.log('POST request received'); // Log request received
 
