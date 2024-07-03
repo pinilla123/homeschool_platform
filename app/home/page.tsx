@@ -1,55 +1,72 @@
-// app/home/page.tsx
 
-// 'use client' directive to ensure this component is rendered on the client-side
-// This is necessary because Next.js can render components on both the server and client,
-// but we want this component to run entirely on the client.
 'use client';
 
-// Import necessary libraries and hooks from React for managing state and lifecycle
-// also, import the createClient function from the utils directory to initialize supabase
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 
-// Create a Supabase client instance
-// this will allow us to interact with our supabase database
 const supabase = createClient();
 
-// Define the Home component using the React functional component syntax.
 const Home: React.FC = () => {
-  // State variable to store the selected theme
-  // usestate is a react hook that allows us to add state to a functional component
+  // state variables
   const [theme, setTheme] = useState<string>('');
+  const [newTheme, setNewTheme] = useState<string>('');
   const [isLoading, setisLoading] = useState(false)
-
-  // State variable to store the generated curriculum
   const [curriculum, setCurriculum] = useState<string>('');
+  const [themes, setThemes] = useState<string[]>([]);
 
 
-  // Handler function for theme change event
-  // this function updates the theme state when the user selects a new theme from the dropdown
+   //useEffect hook to fetch themes from the database when the component mounts.
+   //The empty dependency array `[]` ensures this runs only once.
+  useEffect(() => {
+    const fetchThemes = async () => {
+      const { data, error } = await supabase.from('preferences').select('theme');
+      if (error) {
+        console.error('error fetching themes:', error);
+      } else {
+        setThemes(data.map((item: {theme: string }) => item.theme));
+      }
+    };
+
+    fetchThemes();
+  }, []);
+
+
   const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setTheme(e.target.value); // Update the theme state with the selected value
   };
 
+  const handleNewThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTheme(e.target.value); // Update the new theme state with the input value
+  };
 
-  // Handler function for generating curriculum
-  // this function send the selected theme to the severless function and retrieves the generated curriculum
   const handleGenerateClick = async () => {
     setisLoading(true)
+    const currentTheme = newTheme || theme;
+
+    if (!currentTheme) {
+      console.error('no theme selected or inputted');
+      setisLoading(false);
+      return;
+    }
+
+
     // Send a POST request to the generate API endpoint
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ theme }), // Send the selected theme in the request body
+      body: JSON.stringify({ theme: currentTheme }), // Send the selected theme in the request body
     });
 
-    // Parse the response data from the server
     const data = await response.json();
     // Check if the response is OK (sttus 200) and update the curriculum state with the generated curriculum
     if (response.ok) {
       setCurriculum(data.curriculum); // Set the curriculum state with the response data
+      if (newTheme && !themes.includes(newTheme)) {
+        setThemes([...themes, newTheme]); // Add the new theme to the themes list
+        setNewTheme(''); // Clear the new theme input
+      }
     } else {
       console.error('Error:', data.error); // Log any errors
     }
@@ -66,13 +83,23 @@ const Home: React.FC = () => {
         className="p-3 mb-4 border border-gray-400 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         <option value="">Select Theme</option>
-        <option value="minecraft">Minecraft</option>
-        <option value="superheroes">Superheroes</option>
+        {themes.map((themeOption) => (
+          <option key={themeOption} value={themeOption}>
+            {themeOption}
+          </option>
+        ))}
       </select>
+      <input
+        type="text"
+        placeholder="Or enter a new theme"
+        value={newTheme}
+        onChange={handleNewThemeChange}
+        className="p-3 mb-4 border border-gray-400 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
       <button
         onClick={handleGenerateClick}
-        className={`text-white px-4 py-2 rounded ${isLoading || theme == '' ? "bg-gray-300 border-2 border-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"}`}
-        disabled={isLoading || theme == ''}
+        className={`text-white px-4 hover:scale-[1.05] py-2 rounded ${isLoading || (!theme && !newTheme) ? 'bg-gray-300 border-2 border-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+        disabled={isLoading || (!theme && !newTheme)}
       >
         Generate
       </button>
@@ -86,5 +113,4 @@ const Home: React.FC = () => {
   );
 };
 
-// Export the Home component as the default export from this module
 export default Home;
